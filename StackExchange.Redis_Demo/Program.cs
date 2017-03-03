@@ -66,6 +66,17 @@ namespace StackExchange.Redis_Demo
             redis.HashSet("user", "u3", "1235");
             var news = redis.HashGet<string>("user", "u2");
 
+            //一次读取hash表中的所有内容
+            System.Collections.Generic.IList<string> user_list = redis.HashGetAll<string>("user");
+            if(null != user_list && user_list.Count > 0)
+            {
+                Console.WriteLine("redis hash --> getAll");
+                foreach (var item in user_list)
+                {
+                    Console.WriteLine(item);
+                }
+            }
+
             #endregion Hash
 
             #region 发布订阅
