@@ -939,6 +939,10 @@ namespace RedisHelp
 
         private T ConvertObj<T>(RedisValue value)
         {
+            if (typeof(T).Name.Equals(typeof(string).Name))
+           {
+               return JsonConvert.DeserializeObject<T>($"'{value}'");
+           }
             return JsonConvert.DeserializeObject<T>(value);
         }
 
