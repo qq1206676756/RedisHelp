@@ -12,7 +12,7 @@ namespace RedisHelp
     /// </summary>
     public class RedisHelper
     {
-        private int DbNum { get; }
+        private int DbNum { get; set; }
         private readonly ConnectionMultiplexer _conn;
         public string CustomKey;
 
@@ -316,6 +316,34 @@ namespace RedisHelp
             {
                 string value = db.HashGet(key, dataKey);
                 return ConvertObj<T>(value);
+            });
+        }
+
+        /// <summary>
+        /// 获取整个hash表内容
+        /// </summary>
+        /// <typeparam name="T">需要转换的类型</typeparam>
+        /// <param name="key">hash id</param>
+        /// <returns>转换后的对象集合（hash table中的每一行对应返回结果中一个元素）</returns>
+        /// <remarks>使用时请注意：如果redis中缓存的hash内容很多，可能会影响缓存的转换和读取速度（依赖于Stackexchange.Reids客户端组件对hash内容全部读取的内部逻辑实现？）</remarks>
+        public IList<T> HashGetAll<T>(string hashId)
+        {
+            hashId = AddSysCustomKey(hashId);
+            return Do(db =>
+            {
+                IList<T> obj_list = null;
+                HashEntry[] values = db.HashGetAll(hashId);
+
+                if (values != null && values.Length > 0)
+                {
+                    obj_list = new List<T>(values.Length);
+                    foreach (HashEntry entity in values)
+                    {
+                        var obj = ConvertObj<T>(entity.Value);
+                        obj_list.Add(obj);
+                    }
+                }
+                return obj_list;
             });
         }
 
@@ -828,6 +856,24 @@ namespace RedisHelp
         {
             key = AddSysCustomKey(key);
             return Do(db => db.KeyExpire(key, expiry));
+        }
+
+        /// <summary>
+        /// 根据查询关键词查询缓存的键列表(可使用通配符：？，*)
+        /// </summary>
+        /// <param name="hostAndPort">ip地址和端口（192.168.17.22:6679）</param>
+        /// <param name="searchPattern">检索关键词</param>
+        /// <returns>查询结果</returns>
+        public List<string> KeysScan(string hostAndPort,string searchPattern)
+        {
+            List<string> keys = new List<string>();
+            var server = this.GetServer(hostAndPort);
+            //var server = this.GetServer("192.168.17.22:6679");// _conn.GetServer("192.168.17.22", 6679);
+            foreach (StackExchange.Redis.RedisKey item in server.Keys(pattern: searchPattern))
+            {
+                keys.Add(item.ToString());
+            }
+            return keys;
         }
 
         #endregion key
